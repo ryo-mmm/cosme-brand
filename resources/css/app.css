@@ -1,0 +1,17 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+    html {
+        -webkit-font-smoothing: antialiased;
+    }
+    body {
+        background-color: #F5F5F0;
+        color: #2E3A3B;
+        font-family: 'Noto Sans JP', sans-serif;
+    }
+    h1, h2, h3 {
+        font-family: 'Noto Serif JP', Georgia, serif;
+    }
+}
