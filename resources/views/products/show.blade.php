@@ -37,43 +37,87 @@
                     @endforeach
                 </div>
 
-                {{-- Pricing --}}
-                <div style="background:#F5F5F0; border:1px solid #E8E4DC; border-radius:4px; padding:1.5rem; margin-bottom:2rem;">
-                    <div style="display:grid; grid-template-columns:1fr 1fr; gap:1.5rem;">
-                        <div style="text-align:center; padding:1rem; background:#4A5859; border-radius:4px;">
-                            <p style="font-size:0.6rem; letter-spacing:0.15em; color:#B0BFBF; margin-bottom:0.5rem;">定期便価格</p>
-                            <p style="font-size:1.5rem; color:#fff; font-weight:500;">¥{{ number_format($product->subscription_price) }}</p>
-                            <p style="font-size:0.65rem; color:#B0BFBF;">/月（税込・送料無料）</p>
-                            <p style="font-size:0.65rem; background:#C4A882; color:#fff; padding:0.2rem 0.5rem; border-radius:2px; display:inline-block; margin-top:0.5rem;">{{ $product->discount_percent }}%OFF</p>
-                        </div>
-                        <div style="text-align:center; padding:1rem;">
-                            <p style="font-size:0.6rem; letter-spacing:0.15em; color:#8A9899; margin-bottom:0.5rem;">単品購入価格</p>
-                            <p style="font-size:1.5rem; color:#8A9899; font-weight:400; text-decoration:line-through;">¥{{ number_format($product->price) }}</p>
-                            <p style="font-size:0.65rem; color:#8A9899;">（税込・送料別）</p>
-                        </div>
+                {{-- Purchase Type Toggle --}}
+                <div style="margin-bottom:1.5rem;" x-data="{ type: 'subscription' }">
+
+                    {{-- Tab switcher --}}
+                    <div style="display:grid; grid-template-columns:1fr 1fr; border:1px solid #D8D4CC; border-radius:4px; overflow:hidden; margin-bottom:1.25rem;">
+                        <button
+                            @click="type = 'subscription'"
+                            :style="type === 'subscription'
+                                ? 'background:#4A5859; color:#fff;'
+                                : 'background:#fff; color:#8A9899;'"
+                            style="padding:0.9rem 1rem; font-size:0.85rem; letter-spacing:0.08em; line-height:1; border:none; cursor:pointer; transition:background .15s, color .15s; font-family:inherit; text-align:center; display:block; width:100%;"
+                        >定期便</button>
+                        <button
+                            @click="type = 'single'"
+                            :style="type === 'single'
+                                ? 'background:#4A5859; color:#fff;'
+                                : 'background:#fff; color:#8A9899;'"
+                            style="padding:0.9rem 1rem; font-size:0.85rem; letter-spacing:0.08em; line-height:1; border:none; border-left:1px solid #D8D4CC; cursor:pointer; transition:background .15s, color .15s; font-family:inherit; text-align:center; display:block; width:100%;"
+                        >単品購入</button>
                     </div>
-                </div>
 
-                <p style="font-size:0.85rem; line-height:2; color:#5A6B6C; margin-bottom:2rem;">{{ $product->description }}</p>
+                    {{-- Subscription panel --}}
+                    <div x-show="type === 'subscription'" x-cloak>
+                        <div style="background:#4A5859; border-radius:4px; padding:1.25rem 1.5rem; margin-bottom:1.25rem;">
+                            <div style="display:flex; align-items:center; justify-content:space-between; gap:1rem;">
+                                <div>
+                                    <p style="font-size:0.6rem; letter-spacing:0.15em; color:#B0BFBF; margin-bottom:0.25rem;">定期便価格</p>
+                                    <p style="font-size:1.75rem; color:#fff; font-weight:500; line-height:1.1;">¥{{ number_format($product->subscription_price) }}<span style="font-size:0.75rem; font-weight:400; margin-left:0.25rem;">/月</span></p>
+                                    <p style="font-size:0.68rem; color:#B0BFBF; margin-top:0.25rem;">税込・送料無料</p>
+                                </div>
+                                <div>
+                                    <span style="font-size:0.72rem; background:#C4A882; color:#fff; padding:0.3rem 0.75rem; border-radius:2px; display:block; text-align:center; margin-bottom:0.25rem; white-space:nowrap;">{{ $product->discount_percent }}%OFF</span>
+                                    <p style="font-size:0.72rem; color:#8A9899; text-decoration:line-through; text-align:center;">¥{{ number_format($product->price) }}</p>
+                                </div>
+                            </div>
+                        </div>
+                        <ul style="list-style:none; padding:0; margin:0 0 1.25rem; display:flex; flex-direction:column; gap:0.5rem;">
+                            @foreach(['毎月自動でお届け', '配送日の変更・スキップが自由', '送料無料', 'いつでも解約可能'] as $benefit)
+                            <li style="font-size:0.78rem; color:#5A6B6C; display:flex; align-items:center; gap:0.5rem;">
+                                <svg width="13" height="13" fill="none" stroke="#4A5859" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+                                {{ $benefit }}
+                            </li>
+                            @endforeach
+                        </ul>
+                        <a href="{{ route('checkout') }}?products[]={{ $product->id }}&type=subscription"
+                           style="display:block; text-align:center; background:#4A5859; color:#fff; padding:0.9rem 2rem; font-size:0.85rem; letter-spacing:0.15em; text-decoration:none; border-radius:2px;"
+                           onmouseover="this.style.opacity='.85'" onmouseout="this.style.opacity='1'">
+                            定期便に申し込む（{{ $product->discount_percent }}%OFF）
+                        </a>
+                    </div>
 
-                {{-- CTA --}}
-                <div style="display:flex; flex-direction:column; gap:1rem;">
-                    <a href="{{ route('checkout') }}?products[]={{ $product->id }}" style="display:block; text-align:center; background:#4A5859; color:#fff; padding:1rem 2rem; font-size:0.85rem; letter-spacing:0.15em; text-decoration:none; border-radius:2px; transition:opacity .2s;" onmouseover="this.style.opacity='.85'" onmouseout="this.style.opacity='1'">
-                        定期便に申し込む（{{ $product->discount_percent }}%OFF）
-                    </a>
-                    <a href="{{ route('diagnosis') }}" style="display:block; text-align:center; border:1px solid #4A5859; color:#4A5859; padding:0.875rem 2rem; font-size:0.8rem; letter-spacing:0.1em; text-decoration:none; border-radius:2px; transition:all .2s;" onmouseover="this.style.background='#4A5859'; this.style.color='#fff'" onmouseout="this.style.background='transparent'; this.style.color='#4A5859'">
+                    {{-- Single purchase panel --}}
+                    <div x-show="type === 'single'" x-cloak>
+                        <div style="background:#F5F5F0; border:1px solid #E8E4DC; border-radius:4px; padding:1.25rem 1.5rem; margin-bottom:1.25rem;">
+                            <div style="display:flex; align-items:center; justify-content:space-between; gap:1rem;">
+                                <div>
+                                    <p style="font-size:0.6rem; letter-spacing:0.15em; color:#8A9899; margin-bottom:0.25rem;">単品価格</p>
+                                    <p style="font-size:1.75rem; color:#2E3A3B; font-weight:500; line-height:1.1;">¥{{ number_format($product->price) }}</p>
+                                    <p style="font-size:0.68rem; color:#8A9899; margin-top:0.25rem;">税込・送料別（¥550）</p>
+                                </div>
+                            </div>
+                        </div>
+                        <ul style="list-style:none; padding:0; margin:0 0 1.25rem; display:flex; flex-direction:column; gap:0.5rem;">
+                            @foreach(['1回のみのお届け', '購入後すぐに発送', '繰り返しの請求なし'] as $benefit)
+                            <li style="font-size:0.78rem; color:#5A6B6C; display:flex; align-items:center; gap:0.5rem;">
+                                <svg width="13" height="13" fill="none" stroke="#4A5859" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+                                {{ $benefit }}
+                            </li>
+                            @endforeach
+                        </ul>
+                        <a href="{{ route('checkout') }}?products[]={{ $product->id }}&type=single"
+                           style="display:block; text-align:center; border:2px solid #4A5859; color:#4A5859; padding:0.9rem 2rem; font-size:0.85rem; letter-spacing:0.15em; text-decoration:none; border-radius:2px; background:#fff;"
+                           onmouseover="this.style.background='#4A5859'; this.style.color='#fff'" onmouseout="this.style.background='#fff'; this.style.color='#4A5859'">
+                            単品で購入する（¥{{ number_format($product->price) }}）
+                        </a>
+                    </div>
+
+                    {{-- Diagnosis link --}}
+                    <a href="{{ route('diagnosis') }}" style="display:block; text-align:center; border:1px solid #D8D4CC; color:#8A9899; padding:0.75rem 2rem; font-size:0.78rem; letter-spacing:0.1em; text-decoration:none; border-radius:2px; margin-top:1rem; transition:all .2s;" onmouseover="this.style.borderColor='#4A5859'; this.style.color='#4A5859'" onmouseout="this.style.borderColor='#D8D4CC'; this.style.color='#8A9899'">
                         肌質診断でセットを選ぶ
                     </a>
-                </div>
-
-                {{-- Guarantees --}}
-                <div style="display:flex; gap:1rem; margin-top:2rem; flex-wrap:wrap;">
-                    @foreach(['いつでもスキップ可能', 'いつでも解約可能', '送料無料', 'オーガニック認証済'] as $badge)
-                    <span style="font-size:0.65rem; color:#8A9899; display:flex; align-items:center; gap:0.3rem;">
-                        <svg width="12" height="12" fill="none" stroke="#4A5859" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
-                        {{ $badge }}
-                    </span>
-                    @endforeach
                 </div>
             </div>
         </div>

@@ -8,6 +8,20 @@
             <h1 style="font-family:'Noto Serif JP', serif; font-size:1.75rem; font-weight:300; color:#2E3A3B;">こんにちは、{{ auth()->user()->name }} さん</h1>
         </div>
 
+        {{-- Welcome banner for new users --}}
+        @if(session('status') === 'registered' || auth()->user()->wasRecentlyCreated)
+        <div style="background:linear-gradient(135deg, #4A5859 0%, #2E3A3B 100%); color:#fff; border-radius:4px; padding:2rem 2.5rem; margin-bottom:2rem; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:1.5rem;">
+            <div>
+                <p style="font-size:0.65rem; letter-spacing:0.2em; color:#8A9899; margin-bottom:0.5rem; text-transform:uppercase;">Welcome</p>
+                <h2 style="font-family:'Noto Serif JP', serif; font-size:1.2rem; font-weight:300; margin-bottom:0.5rem;">ご登録ありがとうございます 🌿</h2>
+                <p style="font-size:0.82rem; color:#B0BFBF; line-height:1.8;">まずは肌質診断を受けて、あなたに合ったスキンケアを見つけましょう。</p>
+            </div>
+            <a href="{{ route('diagnosis') }}" style="white-space:nowrap; background:#C4A882; color:#fff; padding:0.875rem 1.75rem; font-size:0.8rem; letter-spacing:0.1em; text-decoration:none; border-radius:2px; transition:opacity .2s;" onmouseover="this.style.opacity='.85'" onmouseout="this.style.opacity='1'">
+                無料 肌質診断をはじめる →
+            </a>
+        </div>
+        @endif
+
         <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
 
             {{-- Subscription Status Card --}}

@@ -35,8 +35,8 @@ export const useDiagnosisStore = defineStore('diagnosis', {
             }
         },
 
-        selectAnswer(questionId, score) {
-            this.answers[questionId] = score;
+        selectAnswer(questionId, score, label) {
+            this.answers[questionId] = { score, label };
         },
 
         nextStep() {
@@ -55,7 +55,7 @@ export const useDiagnosisStore = defineStore('diagnosis', {
             this.loading = true;
             this.error = null;
             try {
-                const answersArray = this.questions.map(q => this.answers[q.id] ?? 0);
+                const answersArray = this.questions.map(q => this.answers[q.id]?.score ?? 0);
                 const res = await fetch('/api/diagnosis/submit', {
                     method: 'POST',
                     headers: {

@@ -96,8 +96,8 @@
             <button
               v-for="option in store.currentQuestion.options"
               :key="option.label"
-              @click="selectAndAdvance(store.currentQuestion.id, option.score)"
-              :class="['option-btn', store.answers[store.currentQuestion.id] === option.score ? 'selected' : '']"
+              @click="selectAndAdvance(store.currentQuestion.id, option.score, option.label)"
+              :class="['option-btn', store.answers[store.currentQuestion.id]?.label === option.label ? 'selected' : '']"
             >
               {{ option.label }}
             </button>
@@ -149,8 +149,8 @@ onMounted(async () => {
   await store.fetchQuestions();
 });
 
-function selectAndAdvance(questionId, score) {
-  store.selectAnswer(questionId, score);
+function selectAndAdvance(questionId, score, label) {
+  store.selectAnswer(questionId, score, label);
 }
 
 async function handleNext() {

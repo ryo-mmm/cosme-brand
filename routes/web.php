@@ -20,8 +20,9 @@ Route::get('/diagnosis/result/{id}', [DiagnosisController::class, 'result'])->na
 Route::get('/products', [ProductController::class, 'index'])->name('products.index');
 Route::get('/products/{slug}', [ProductController::class, 'show'])->name('products.show');
 
-// Checkout (auth required)
+// Auth required routes
 Route::middleware(['auth'])->group(function () {
+    Route::get('/dashboard', fn() => redirect()->route('mypage'))->name('dashboard');
     Route::get('/checkout', [CheckoutController::class, 'index'])->name('checkout');
     Route::post('/checkout', [CheckoutController::class, 'process'])->name('checkout.process');
     Route::get('/mypage', [MyPageController::class, 'index'])->name('mypage');

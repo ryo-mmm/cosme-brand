@@ -11,7 +11,56 @@
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     @stack('head')
 </head>
-<body style="background-color:#F5F5F0; color:#2E3A3B; font-family:'Noto Sans JP', sans-serif;">
+<body x-data="{ drawerOpen: false }" style="background-color:#F5F5F0; color:#2E3A3B; font-family:'Noto Sans JP', sans-serif;">
+
+    {{-- Drawer overlay --}}
+    <div x-show="drawerOpen"
+         x-cloak
+         @click="drawerOpen = false"
+         style="position:fixed; inset:0; background:rgba(0,0,0,0.35); z-index:100; transition:opacity .25s;"
+         x-transition:enter="transition ease-out duration-250"
+         x-transition:enter-start="opacity-0"
+         x-transition:enter-end="opacity-100"
+         x-transition:leave="transition ease-in duration-200"
+         x-transition:leave-start="opacity-100"
+         x-transition:leave-end="opacity-0">
+    </div>
+
+    {{-- Drawer --}}
+    <div x-show="drawerOpen"
+         x-cloak
+         style="position:fixed; top:0; left:0; height:100%; width:260px; background:#F5F5F0; z-index:101; box-shadow:4px 0 20px rgba(0,0,0,0.1);"
+         x-transition:enter="transition ease-out duration-250"
+         x-transition:enter-start="transform -translate-x-full"
+         x-transition:enter-end="transform translate-x-0"
+         x-transition:leave="transition ease-in duration-200"
+         x-transition:leave-start="transform translate-x-0"
+         x-transition:leave-end="transform -translate-x-full">
+
+        {{-- Drawer header --}}
+        <div style="display:flex; align-items:center; justify-content:space-between; padding:1.25rem 1.5rem; border-bottom:1px solid #E0E0D8;">
+            <span style="font-family:'Noto Serif JP', serif; font-size:0.85rem; letter-spacing:0.15em; color:#4A5859;">MENU</span>
+            <button @click="drawerOpen = false" style="background:none; border:none; cursor:pointer; color:#8A9899; padding:0.25rem;">
+                <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" d="M6 18L18 6M6 6l12 12"/></svg>
+            </button>
+        </div>
+
+        {{-- Drawer links --}}
+        <div style="padding:1.5rem; display:flex; flex-direction:column; gap:0;">
+            <a href="{{ route('diagnosis') }}" style="font-size:0.85rem; letter-spacing:0.05em; color:#4A5859; text-decoration:none; padding:1rem 0; border-bottom:1px solid #F0EDE6; display:block;">肌質診断</a>
+            <a href="{{ route('products.index') }}" style="font-size:0.85rem; letter-spacing:0.05em; color:#4A5859; text-decoration:none; padding:1rem 0; border-bottom:1px solid #F0EDE6; display:block;">商品一覧</a>
+            @auth
+                <a href="{{ route('mypage') }}" style="font-size:0.85rem; letter-spacing:0.05em; color:#4A5859; text-decoration:none; padding:1rem 0; border-bottom:1px solid #F0EDE6; display:block;">マイページ</a>
+                <form method="POST" action="{{ route('logout') }}" style="margin:0;">
+                    @csrf
+                    <button type="submit" style="font-size:0.85rem; letter-spacing:0.05em; color:#8A9899; background:none; border:none; cursor:pointer; padding:1rem 0; display:block; width:100%; text-align:left;">ログアウト</button>
+                </form>
+            @else
+                <a href="{{ route('login') }}" style="font-size:0.85rem; letter-spacing:0.05em; color:#4A5859; text-decoration:none; padding:1rem 0; border-bottom:1px solid #F0EDE6; display:block;">ログイン</a>
+                <a href="{{ route('register') }}" style="font-size:0.85rem; letter-spacing:0.05em; color:#4A5859; text-decoration:none; padding:1rem 0; display:block;">新規登録</a>
+            @endauth
+        </div>
+    </div>
 
     {{-- Navigation --}}
     <header style="background-color:#F5F5F0; border-bottom:1px solid #E0E0D8; position:sticky; top:0; z-index:50;">
@@ -34,24 +83,11 @@
                     <a href="{{ route('register') }}" style="font-size:0.8rem; letter-spacing:0.1em; color:#fff; background:#4A5859; padding:0.5rem 1.25rem; border-radius:2px; text-decoration:none; transition:opacity .2s;" onmouseover="this.style.opacity='.8'" onmouseout="this.style.opacity='1'">新規登録</a>
                 @endauth
             </div>
-            {{-- Mobile menu button --}}
-            <button id="mobile-menu-btn" class="md:hidden" style="background:none; border:none; cursor:pointer; color:#4A5859;">
+            {{-- Mobile hamburger button --}}
+            <button @click="drawerOpen = true" class="md:hidden" style="background:none; border:none; cursor:pointer; color:#4A5859;">
                 <svg width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" d="M4 6h16M4 12h16M4 18h16"/></svg>
             </button>
         </nav>
-        {{-- Mobile menu --}}
-        <div id="mobile-menu" style="display:none; border-top:1px solid #E0E0D8; background:#F5F5F0; padding:1rem 1.5rem;">
-            <div class="flex flex-col gap-4">
-                <a href="{{ route('diagnosis') }}" style="font-size:0.85rem; color:#4A5859; text-decoration:none;">肌質診断</a>
-                <a href="{{ route('products.index') }}" style="font-size:0.85rem; color:#4A5859; text-decoration:none;">商品一覧</a>
-                @auth
-                    <a href="{{ route('mypage') }}" style="font-size:0.85rem; color:#4A5859; text-decoration:none;">マイページ</a>
-                @else
-                    <a href="{{ route('login') }}" style="font-size:0.85rem; color:#4A5859; text-decoration:none;">ログイン</a>
-                    <a href="{{ route('register') }}" style="font-size:0.85rem; color:#4A5859; text-decoration:none;">新規登録</a>
-                @endauth
-            </div>
-        </div>
     </header>
 
     {{-- Flash Messages --}}
@@ -98,12 +134,6 @@
         </div>
     </footer>
 
-    <script>
-        document.getElementById('mobile-menu-btn').addEventListener('click', function() {
-            const menu = document.getElementById('mobile-menu');
-            menu.style.display = menu.style.display === 'none' ? 'block' : 'none';
-        });
-    </script>
     @stack('scripts')
 </body>
 </html>
