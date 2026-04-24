@@ -1,0 +1,18 @@
+# 環境変数ファイル（最優先で隠す）
+
+.env
+.env.*
+*.pem
+*.key
+
+# 認証・機密情報
+secrets/
+config/database.yml
+credentials/
+
+# Gitの管理外ファイル
+.gitignore
+
+# ログやキャッシュ
+*.log
+node_modules/
