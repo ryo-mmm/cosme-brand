@@ -5,12 +5,15 @@ namespace App\Http\Controllers;
 use App\Models\SubscriptionSkip;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
 
 class MyPageController extends Controller
 {
     public function index()
     {
-        $user = auth()->user();
+        /** @var \App\Models\User $user */
+        $user = Auth::user();
         $subscription = $user->subscription('default');
         $diagnoses = $user->skinDiagnoses()->latest()->take(3)->get();
 
@@ -29,7 +32,8 @@ class MyPageController extends Controller
 
     public function skipSubscription(Request $request)
     {
-        $user = auth()->user();
+        /** @var \App\Models\User $user */
+        $user = Auth::user();
         $subscription = $user->subscription('default');
 
         if (!$subscription || !$subscription->active()) {
@@ -45,19 +49,45 @@ class MyPageController extends Controller
 
         $newDate = $originalDate->copy()->addMonth();
 
-        // Stripe APIで次回請求日を更新
-        // \Stripe\Subscription::update($stripeSubscription->id, [
-        //     'trial_end' => $newDate->timestamp,
-        //     'proration_behavior' => 'none',
-        // ]);
+        try {
+            $subscription->updateStripeSubscription([
+                'trial_end'          => $newDate->timestamp,
+                'proration_behavior' => 'none',
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Subscription skip error: ' . $e->getMessage());
+            return back()->with('error', 'スキップ処理中にエラーが発生しました。');
+        }
 
         SubscriptionSkip::create([
-            'user_id' => $user->id,
-            'stripe_subscription_id' => $stripeSubscription->id,
+            'user_id'                    => $user->id,
+            'stripe_subscription_id'     => $stripeSubscription->id,
             'original_next_billing_date' => $originalDate,
-            'new_next_billing_date' => $newDate,
+            'new_next_billing_date'      => $newDate,
         ]);
 
         return back()->with('success', '次回配送を1ヶ月スキップしました。新しい配送日: ' . $newDate->format('Y年m月d日'));
+    }
+
+    public function cancelSubscription(Request $request)
+    {
+        /** @var \App\Models\User $user */
+        $user = Auth::user();
+        $subscription = $user->subscription('default');
+
+        if (!$subscription || !$subscription->active()) {
+            return back()->with('error', '有効なサブスクリプションが見つかりません。');
+        }
+
+        try {
+            // 期間終了時に解約（即時解約ではなく次回更新日まで有効）
+            $subscription->cancel();
+        } catch (\Exception $e) {
+            Log::error('Subscription cancel error: ' . $e->getMessage());
+            return back()->with('error', '解約処理中にエラーが発生しました。');
+        }
+
+        return redirect()->route('mypage')
+            ->with('success', '定期便の解約を受け付けました。現在の請求期間終了まではご利用いただけます。');
     }
 }

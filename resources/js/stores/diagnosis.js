@@ -66,6 +66,9 @@ export const useDiagnosisStore = defineStore('diagnosis', {
                 });
                 const data = await res.json();
                 this.result = data;
+                if (data.diagnosis_id) {
+                    window.location.href = `/diagnosis/result/${data.diagnosis_id}`;
+                }
             } catch (e) {
                 this.error = '診断の送信に失敗しました。';
             } finally {

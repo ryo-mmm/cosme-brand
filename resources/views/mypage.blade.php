@@ -64,7 +64,14 @@
                         @endif
                     </div>
 
-                    <a href="#" style="font-size:0.75rem; color:#c0392b; text-decoration:none;">定期便を解約する</a>
+                    <form method="POST" action="{{ route('mypage.cancel') }}"
+                          onsubmit="return confirm('定期便を解約しますか？\n現在の請求期間終了日まではご利用いただけます。')">
+                        @csrf
+                        <button type="submit"
+                            style="background:none; border:none; cursor:pointer; font-size:0.75rem; color:#c0392b; padding:0; font-family:'Noto Sans JP', sans-serif; text-decoration:underline;">
+                            定期便を解約する
+                        </button>
+                    </form>
 
                 @else
                     <div style="text-align:center; padding:2rem 0;">

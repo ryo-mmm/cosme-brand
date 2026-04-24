@@ -107,7 +107,7 @@
     </main>
 
     {{-- Footer --}}
-    <footer style="background:#2E3A3B; color:#B0BFBF; margin-top:6rem; padding:3rem 1.5rem;">
+    <footer style="background:#2E3A3B; color:#B0BFBF; padding:3rem 1.5rem;">
         <div class="max-w-6xl mx-auto">
             <div class="grid grid-cols-1 md:grid-cols-3 gap-8 mb-8">
                 <div>

@@ -1,6 +1,10 @@
 <x-app-layout>
     <x-slot name="title">{{ $type === 'single' ? '単品購入' : '定期便 申し込み' }}</x-slot>
 
+    @push('head')
+    <script src="https://js.stripe.com/v3/"></script>
+    @endpush
+
     <div class="max-w-4xl mx-auto px-6 py-12">
         <div style="text-align:center; margin-bottom:3rem;">
             <p style="font-size:0.65rem; letter-spacing:0.3em; color:#8A9899; margin-bottom:1rem; text-transform:uppercase;">Checkout</p>
@@ -30,7 +34,11 @@
                 @php $displayPrice = $type === 'single' ? $product->price : $product->subscription_price; @endphp
                 <div style="display:flex; gap:1rem; margin-bottom:1.5rem; padding-bottom:1.5rem; border-bottom:1px solid #F0EDE6;">
                     <div style="width:60px; height:60px; background:#F0EDE6; border-radius:4px; flex-shrink:0; display:flex; align-items:center; justify-content:center;">
-                        <svg width="24" height="24" fill="none" stroke="#C4A882" stroke-width="1" viewBox="0 0 24 24"><path d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>
+                        @if($product->image)
+                            <img src="{{ asset('storage/'.$product->image) }}" alt="{{ $product->name }}" style="width:100%; height:100%; object-fit:cover; border-radius:4px;">
+                        @else
+                            <svg width="24" height="24" fill="none" stroke="#C4A882" stroke-width="1" viewBox="0 0 24 24"><path d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>
+                        @endif
                     </div>
                     <div style="flex:1;">
                         <p style="font-size:0.85rem; color:#2E3A3B; margin-bottom:0.25rem;">{{ $product->name }}</p>
@@ -119,14 +127,20 @@
                         <h3 style="font-size:0.85rem; font-weight:500; color:#2E3A3B; margin-bottom:1rem; letter-spacing:0.05em;">配送先住所</h3>
                         <div style="display:grid; gap:1rem;">
                             <div>
-                                <label style="display:block; font-size:0.75rem; color:#8A9899; margin-bottom:0.4rem;">郵便番号</label>
+                                <label style="display:block; font-size:0.75rem; color:#8A9899; margin-bottom:0.4rem;">郵便番号 <span style="color:#c0392b;">*</span></label>
                                 <input type="text" name="postal_code" placeholder="000-0000" required
                                     style="width:100%; padding:0.75rem 1rem; border:1px solid #D8D4CC; border-radius:2px; font-size:0.85rem; background:#fff; outline:none; transition:border .2s; box-sizing:border-box;"
                                     onfocus="this.style.borderColor='#4A5859'" onblur="this.style.borderColor='#D8D4CC'">
                             </div>
                             <div>
-                                <label style="display:block; font-size:0.75rem; color:#8A9899; margin-bottom:0.4rem;">都道府県・市区町村・番地</label>
+                                <label style="display:block; font-size:0.75rem; color:#8A9899; margin-bottom:0.4rem;">都道府県・市区町村・番地 <span style="color:#c0392b;">*</span></label>
                                 <input type="text" name="address" placeholder="東京都渋谷区..." required
+                                    style="width:100%; padding:0.75rem 1rem; border:1px solid #D8D4CC; border-radius:2px; font-size:0.85rem; background:#fff; outline:none; transition:border .2s; box-sizing:border-box;"
+                                    onfocus="this.style.borderColor='#4A5859'" onblur="this.style.borderColor='#D8D4CC'">
+                            </div>
+                            <div>
+                                <label style="display:block; font-size:0.75rem; color:#8A9899; margin-bottom:0.4rem;">建物名・部屋番号</label>
+                                <input type="text" name="address_line2" placeholder="〇〇マンション101号室"
                                     style="width:100%; padding:0.75rem 1rem; border:1px solid #D8D4CC; border-radius:2px; font-size:0.85rem; background:#fff; outline:none; transition:border .2s; box-sizing:border-box;"
                                     onfocus="this.style.borderColor='#4A5859'" onblur="this.style.borderColor='#D8D4CC'">
                             </div>
@@ -136,13 +150,10 @@
                     {{-- Card --}}
                     <div style="margin-bottom:2rem;">
                         <h3 style="font-size:0.85rem; font-weight:500; color:#2E3A3B; margin-bottom:1rem; letter-spacing:0.05em;">クレジットカード情報</h3>
-                        <div style="border:1px solid #D8D4CC; border-radius:2px; padding:0.875rem 1rem; background:#fff; min-height:50px;" id="card-element">
-                            <p style="font-size:0.8rem; color:#B0BFBF; display:flex; align-items:center; gap:0.5rem;">
-                                <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
-                                Stripe決済（実環境では Stripe.js が読み込まれます）
-                            </p>
+                        <div style="border:1px solid #D8D4CC; border-radius:2px; padding:0.875rem 1rem; background:#fff; min-height:50px; transition:border .2s;" id="card-element">
+                            {{-- Stripe Elements がここに挿入される --}}
                         </div>
-                        <p id="card-error" style="font-size:0.75rem; color:#c0392b; margin-top:0.5rem;"></p>
+                        <p id="card-error" style="font-size:0.75rem; color:#c0392b; margin-top:0.5rem; min-height:1rem;"></p>
                     </div>
 
                     <div style="display:flex; align-items:center; gap:0.75rem; margin-bottom:2rem;">
@@ -169,6 +180,70 @@
                         @endif
                     </p>
                 </form>
+
+                @push('scripts')
+                <script>
+                    const stripeKey = '{{ config('cashier.key') }}';
+                    const clientSecret = '{{ $intent->client_secret ?? '' }}';
+
+                    if (stripeKey && clientSecret) {
+                        const stripe = Stripe(stripeKey);
+                        const elements = stripe.elements();
+                        const cardElement = elements.create('card', {
+                            style: {
+                                base: {
+                                    fontFamily: '"Noto Sans JP", sans-serif',
+                                    fontSize: '14px',
+                                    color: '#2E3A3B',
+                                    '::placeholder': { color: '#B0BFBF' },
+                                },
+                                invalid: { color: '#c0392b' },
+                            },
+                        });
+                        cardElement.mount('#card-element');
+
+                        const cardElWrapper = document.getElementById('card-element');
+                        cardElement.on('focus', () => cardElWrapper.style.borderColor = '#4A5859');
+                        cardElement.on('blur',  () => cardElWrapper.style.borderColor = '#D8D4CC');
+
+                        const form       = document.getElementById('checkout-form');
+                        const submitBtn  = document.getElementById('submit-btn');
+                        const cardError  = document.getElementById('card-error');
+                        const pmInput    = document.getElementById('payment-method-input');
+
+                        form.addEventListener('submit', async (e) => {
+                            e.preventDefault();
+                            submitBtn.disabled = true;
+                            submitBtn.style.opacity = '0.6';
+                            submitBtn.textContent = '処理中...';
+                            cardError.textContent = '';
+
+                            const { setupIntent, error } = await stripe.confirmCardSetup(clientSecret, {
+                                payment_method: { card: cardElement },
+                            });
+
+                            if (error) {
+                                cardError.textContent = error.message;
+                                submitBtn.disabled = false;
+                                submitBtn.style.opacity = '1';
+                                submitBtn.textContent = submitBtn.dataset.originalText;
+                                return;
+                            }
+
+                            pmInput.value = setupIntent.payment_method;
+                            form.submit();
+                        });
+
+                        submitBtn.dataset.originalText = submitBtn.textContent;
+                    } else {
+                        // Stripe キー未設定時は card-element にプレースホルダーを表示
+                        document.getElementById('card-element').innerHTML =
+                            '<p style="font-size:0.8rem; color:#B0BFBF; display:flex; align-items:center; gap:0.5rem;">' +
+                            '<svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>' +
+                            'Stripe公開鍵を設定してください（.env: STRIPE_KEY）</p>';
+                    }
+                </script>
+                @endpush
                 @endauth
             </div>
         </div>

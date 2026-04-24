@@ -27,6 +27,7 @@ Route::middleware(['auth'])->group(function () {
     Route::post('/checkout', [CheckoutController::class, 'process'])->name('checkout.process');
     Route::get('/mypage', [MyPageController::class, 'index'])->name('mypage');
     Route::post('/mypage/skip', [MyPageController::class, 'skipSubscription'])->name('mypage.skip');
+    Route::post('/mypage/cancel', [MyPageController::class, 'cancelSubscription'])->name('mypage.cancel');
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
