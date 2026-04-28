@@ -2,10 +2,12 @@
 
 namespace App\Http\Controllers;
 
+use App\Mail\SubscriptionStartedMail;
 use App\Models\Product;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Mail;
 use Laravel\Cashier\Exceptions\IncompletePayment;
 
 class CheckoutController extends Controller
@@ -59,6 +61,12 @@ class CheckoutController extends Controller
         }
     }
 
+    public function thanks(Request $request)
+    {
+        $type = $request->query('type', 'subscription');
+        return view('checkout-thanks', compact('type'));
+    }
+
     private function processSubscription($user, Request $request)
     {
         $priceId = config('cashier.price_id');
@@ -75,8 +83,9 @@ class CheckoutController extends Controller
         $user->newSubscription('default', $priceId)
             ->create($request->payment_method);
 
-        return redirect()->route('mypage')
-            ->with('success', '定期便のお申し込みが完了しました。初回のお届けをお待ちください。');
+        Mail::to($user)->send(new SubscriptionStartedMail($user));
+
+        return redirect()->route('checkout.thanks', ['type' => 'subscription']);
     }
 
     private function processSinglePurchase($user, Request $request)
@@ -99,7 +108,6 @@ class CheckoutController extends Controller
             ],
         ]);
 
-        return redirect()->route('mypage')
-            ->with('success', 'ご購入ありがとうございます！3〜5営業日以内に発送いたします。');
+        return redirect()->route('checkout.thanks', ['type' => 'single']);
     }
 }

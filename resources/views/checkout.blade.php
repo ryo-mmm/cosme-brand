@@ -128,13 +128,18 @@
                         <div style="display:grid; gap:1rem;">
                             <div>
                                 <label style="display:block; font-size:0.75rem; color:#8A9899; margin-bottom:0.4rem;">郵便番号 <span style="color:#c0392b;">*</span></label>
-                                <input type="text" name="postal_code" placeholder="000-0000" required
-                                    style="width:100%; padding:0.75rem 1rem; border:1px solid #D8D4CC; border-radius:2px; font-size:0.85rem; background:#fff; outline:none; transition:border .2s; box-sizing:border-box;"
-                                    onfocus="this.style.borderColor='#4A5859'" onblur="this.style.borderColor='#D8D4CC'">
+                                <div style="display:flex; gap:0.5rem; align-items:center;">
+                                    <input type="text" name="postal_code" id="postal-code-input" placeholder="1234567" required
+                                        maxlength="8" inputmode="numeric"
+                                        style="width:160px; padding:0.75rem 1rem; border:1px solid #D8D4CC; border-radius:2px; font-size:0.85rem; background:#fff; outline:none; transition:border .2s; box-sizing:border-box;"
+                                        onfocus="this.style.borderColor='#4A5859'" onblur="this.style.borderColor='#D8D4CC'">
+                                    <span id="postal-lookup-status" style="font-size:0.75rem; color:#8A9899;"></span>
+                                </div>
+                                <p style="font-size:0.7rem; color:#B0BFBF; margin-top:0.4rem;">ハイフンなし7桁で入力すると住所が自動入力されます</p>
                             </div>
                             <div>
                                 <label style="display:block; font-size:0.75rem; color:#8A9899; margin-bottom:0.4rem;">都道府県・市区町村・番地 <span style="color:#c0392b;">*</span></label>
-                                <input type="text" name="address" placeholder="東京都渋谷区..." required
+                                <input type="text" name="address" id="address-input" placeholder="東京都渋谷区..." required
                                     style="width:100%; padding:0.75rem 1rem; border:1px solid #D8D4CC; border-radius:2px; font-size:0.85rem; background:#fff; outline:none; transition:border .2s; box-sizing:border-box;"
                                     onfocus="this.style.borderColor='#4A5859'" onblur="this.style.borderColor='#D8D4CC'">
                             </div>
@@ -153,7 +158,13 @@
                         <div style="border:1px solid #D8D4CC; border-radius:2px; padding:0.875rem 1rem; background:#fff; min-height:50px; transition:border .2s;" id="card-element">
                             {{-- Stripe Elements がここに挿入される --}}
                         </div>
-                        <p id="card-error" style="font-size:0.75rem; color:#c0392b; margin-top:0.5rem; min-height:1rem;"></p>
+                        <div id="card-error-box" style="display:none; margin-top:0.75rem; background:#FDF0F0; border:1px solid #e8a0a0; border-radius:2px; padding:1rem;">
+                            <p id="card-error" style="font-size:0.82rem; color:#c0392b; margin-bottom:0.75rem;"></p>
+                            <button type="button" id="retry-btn"
+                                style="font-size:0.78rem; padding:0.5rem 1.25rem; border:1px solid #c0392b; background:transparent; color:#c0392b; border-radius:2px; cursor:pointer; font-family:inherit;">
+                                カード情報を入力し直す
+                            </button>
+                        </div>
                     </div>
 
                     <div style="display:flex; align-items:center; gap:0.75rem; margin-bottom:2rem;">
@@ -183,65 +194,128 @@
 
                 @push('scripts')
                 <script>
-                    const stripeKey = '{{ config('cashier.key') }}';
-                    const clientSecret = '{{ $intent->client_secret ?? '' }}';
+                // ---- 郵便番号自動補完 ----
+                (function () {
+                    const postalInput  = document.getElementById('postal-code-input');
+                    const addressInput = document.getElementById('address-input');
+                    const statusEl     = document.getElementById('postal-lookup-status');
+                    if (!postalInput || !addressInput) return;
 
-                    if (stripeKey && clientSecret) {
-                        const stripe = Stripe(stripeKey);
-                        const elements = stripe.elements();
-                        const cardElement = elements.create('card', {
-                            style: {
-                                base: {
-                                    fontFamily: '"Noto Sans JP", sans-serif',
-                                    fontSize: '14px',
-                                    color: '#2E3A3B',
-                                    '::placeholder': { color: '#B0BFBF' },
-                                },
-                                invalid: { color: '#c0392b' },
-                            },
-                        });
-                        cardElement.mount('#card-element');
+                    let lookupTimer;
+                    postalInput.addEventListener('input', () => {
+                        const raw = postalInput.value.replace(/[^\d]/g, '');
+                        if (raw.length !== 7) { statusEl.textContent = ''; return; }
 
-                        const cardElWrapper = document.getElementById('card-element');
-                        cardElement.on('focus', () => cardElWrapper.style.borderColor = '#4A5859');
-                        cardElement.on('blur',  () => cardElWrapper.style.borderColor = '#D8D4CC');
-
-                        const form       = document.getElementById('checkout-form');
-                        const submitBtn  = document.getElementById('submit-btn');
-                        const cardError  = document.getElementById('card-error');
-                        const pmInput    = document.getElementById('payment-method-input');
-
-                        form.addEventListener('submit', async (e) => {
-                            e.preventDefault();
-                            submitBtn.disabled = true;
-                            submitBtn.style.opacity = '0.6';
-                            submitBtn.textContent = '処理中...';
-                            cardError.textContent = '';
-
-                            const { setupIntent, error } = await stripe.confirmCardSetup(clientSecret, {
-                                payment_method: { card: cardElement },
-                            });
-
-                            if (error) {
-                                cardError.textContent = error.message;
-                                submitBtn.disabled = false;
-                                submitBtn.style.opacity = '1';
-                                submitBtn.textContent = submitBtn.dataset.originalText;
-                                return;
+                        clearTimeout(lookupTimer);
+                        lookupTimer = setTimeout(async () => {
+                            statusEl.textContent = '検索中...';
+                            try {
+                                const res  = await fetch(`https://zipcloud.ibsnet.co.jp/api/search?zipcode=${raw}`);
+                                const data = await res.json();
+                                if (data.results && data.results.length > 0) {
+                                    const r = data.results[0];
+                                    addressInput.value = r.address1 + r.address2 + r.address3;
+                                    addressInput.style.borderColor = '#4A5859';
+                                    statusEl.textContent = '✓ 住所を入力しました';
+                                    statusEl.style.color = '#4A5859';
+                                } else {
+                                    statusEl.textContent = '該当する住所が見つかりません';
+                                    statusEl.style.color = '#c0392b';
+                                }
+                            } catch {
+                                statusEl.textContent = '';
                             }
+                        }, 400);
+                    });
+                })();
 
-                            pmInput.value = setupIntent.payment_method;
-                            form.submit();
+                // ---- Stripe 決済 ----
+                const stripeKey    = '{{ config('cashier.key') }}';
+                const clientSecret = '{{ $intent->client_secret ?? '' }}';
+
+                if (stripeKey && clientSecret) {
+                    const stripe  = Stripe(stripeKey);
+                    const elements = stripe.elements();
+                    const cardElement = elements.create('card', {
+                        style: {
+                            base: {
+                                fontFamily: '"Noto Sans JP", sans-serif',
+                                fontSize: '14px',
+                                color: '#2E3A3B',
+                                '::placeholder': { color: '#B0BFBF' },
+                            },
+                            invalid: { color: '#c0392b' },
+                        },
+                    });
+                    cardElement.mount('#card-element');
+
+                    const cardElWrapper = document.getElementById('card-element');
+                    cardElement.on('focus', () => cardElWrapper.style.borderColor = '#4A5859');
+                    cardElement.on('blur',  () => cardElWrapper.style.borderColor = '#D8D4CC');
+
+                    const form       = document.getElementById('checkout-form');
+                    const submitBtn  = document.getElementById('submit-btn');
+                    const cardError  = document.getElementById('card-error');
+                    const cardErrBox = document.getElementById('card-error-box');
+                    const retryBtn   = document.getElementById('retry-btn');
+                    const pmInput    = document.getElementById('payment-method-input');
+
+                    const stripeErrorMessages = {
+                        card_declined:          'カードが拒否されました。別のカードをお試しください。',
+                        insufficient_funds:     '残高が不足しています。',
+                        expired_card:           'カードの有効期限が切れています。',
+                        incorrect_cvc:          'セキュリティコード（CVC）が正しくありません。',
+                        incorrect_number:       'カード番号が正しくありません。',
+                        processing_error:       '決済処理中にエラーが発生しました。しばらく経ってから再度お試しください。',
+                        authentication_required: '追加認証が必要です。カード発行元にお問い合わせください。',
+                    };
+
+                    function showError(message) {
+                        cardError.textContent = message;
+                        cardErrBox.style.display = 'block';
+                        submitBtn.style.display  = 'none';
+                    }
+
+                    function resetForm() {
+                        cardErrBox.style.display = 'none';
+                        submitBtn.style.display  = 'block';
+                        submitBtn.disabled       = false;
+                        submitBtn.style.opacity  = '1';
+                        submitBtn.textContent    = submitBtn.dataset.originalText;
+                        cardElement.clear();
+                        cardElWrapper.style.borderColor = '#D8D4CC';
+                    }
+
+                    retryBtn.addEventListener('click', resetForm);
+
+                    form.addEventListener('submit', async (e) => {
+                        e.preventDefault();
+                        submitBtn.disabled    = true;
+                        submitBtn.style.opacity = '0.6';
+                        submitBtn.textContent = '処理中...';
+                        cardErrBox.style.display = 'none';
+
+                        const { setupIntent, error } = await stripe.confirmCardSetup(clientSecret, {
+                            payment_method: { card: cardElement },
                         });
 
-                        submitBtn.dataset.originalText = submitBtn.textContent;
-                    } else {
-                        // Stripe キー未設定時は card-element にプレースホルダーを表示
-                        document.getElementById('card-element').innerHTML =
-                            '<p style="font-size:0.8rem; color:#B0BFBF; display:flex; align-items:center; gap:0.5rem;">' +
-                            '<svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>' +
-                            'Stripe公開鍵を設定してください（.env: STRIPE_KEY）</p>';
-                    }
+                        if (error) {
+                            const msg = stripeErrorMessages[error.code] || error.message;
+                            showError(msg);
+                            return;
+                        }
+
+                        pmInput.value = setupIntent.payment_method;
+                        form.submit();
+                    });
+
+                    submitBtn.dataset.originalText = submitBtn.textContent;
+                } else {
+                    document.getElementById('card-element').innerHTML =
+                        '<p style="font-size:0.8rem; color:#B0BFBF; display:flex; align-items:center; gap:0.5rem;">' +
+                        '<svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>' +
+                        'Stripe公開鍵を設定してください（.env: STRIPE_KEY）</p>';
+                }
                 </script>
                 @endpush
                 @endauth

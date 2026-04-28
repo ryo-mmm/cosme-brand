@@ -107,6 +107,37 @@
             </div>
         </div>
 
+        {{-- Order History --}}
+        @if($charges->isNotEmpty())
+        <div style="background:#fff; border:1px solid #E8E4DC; border-radius:4px; padding:2rem; margin-bottom:1.5rem;">
+            <h2 style="font-family:'Noto Serif JP', serif; font-size:1rem; font-weight:400; color:#2E3A3B; margin-bottom:1.5rem; padding-bottom:0.75rem; border-bottom:1px solid #E8E4DC;">購入履歴</h2>
+            <div style="display:flex; flex-direction:column; gap:0.75rem;">
+                @foreach($charges as $charge)
+                @if($charge->paid)
+                <div style="display:flex; align-items:center; justify-content:space-between; padding:1rem; background:#F5F5F0; border-radius:4px; flex-wrap:wrap; gap:0.75rem;">
+                    <div>
+                        <p style="font-size:0.8rem; color:#2E3A3B; font-weight:500; margin-bottom:0.2rem;">
+                            {{ $charge->description ?? '定期便' }}
+                        </p>
+                        <p style="font-size:0.7rem; color:#8A9899;">
+                            {{ \Carbon\Carbon::createFromTimestamp($charge->created)->format('Y年m月d日') }}
+                        </p>
+                    </div>
+                    <div style="text-align:right;">
+                        <p style="font-size:0.9rem; color:#2E3A3B; font-weight:500;">
+                            ¥{{ number_format($charge->amount / 100) }}
+                        </p>
+                        <span style="font-size:0.65rem; letter-spacing:0.05em; color:#4A5859; background:#E8F0E8; padding:0.15rem 0.5rem; border-radius:2px;">
+                            決済完了
+                        </span>
+                    </div>
+                </div>
+                @endif
+                @endforeach
+            </div>
+        </div>
+        @endif
+
         {{-- Diagnosis History --}}
         @if($diagnoses->count() > 0)
         <div style="background:#fff; border:1px solid #E8E4DC; border-radius:4px; padding:2rem;">

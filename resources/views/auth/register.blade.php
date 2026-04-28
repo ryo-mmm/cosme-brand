@@ -101,9 +101,9 @@
                     <div style="margin-bottom:2rem; padding:1rem; background:#F5F5F0; border-radius:2px;">
                         <p style="font-size:0.75rem; color:#8A9899; line-height:1.8; text-align:center;">
                             登録することで
-                            <a href="#" style="color:#4A5859; text-decoration:none; border-bottom:1px solid #C4A882;">利用規約</a>
+                            <a href="{{ route('legal.terms') }}" target="_blank" style="color:#4A5859; text-decoration:none; border-bottom:1px solid #C4A882;">利用規約</a>
                             および
-                            <a href="#" style="color:#4A5859; text-decoration:none; border-bottom:1px solid #C4A882;">プライバシーポリシー</a>
+                            <a href="{{ route('legal.privacy') }}" target="_blank" style="color:#4A5859; text-decoration:none; border-bottom:1px solid #C4A882;">プライバシーポリシー</a>
                             に同意したものとみなされます。
                         </p>
                     </div>

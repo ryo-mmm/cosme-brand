@@ -119,8 +119,8 @@
                     <div class="flex flex-col gap-2">
                         <a href="{{ route('diagnosis') }}" style="font-size:0.75rem; color:#B0BFBF; text-decoration:none;">肌質診断</a>
                         <a href="{{ route('products.index') }}" style="font-size:0.75rem; color:#B0BFBF; text-decoration:none;">商品一覧</a>
-                        <a href="#" style="font-size:0.75rem; color:#B0BFBF; text-decoration:none;">特定商取引法に基づく表記</a>
-                        <a href="#" style="font-size:0.75rem; color:#B0BFBF; text-decoration:none;">プライバシーポリシー</a>
+                        <a href="{{ route('legal.tokushoho') }}" style="font-size:0.75rem; color:#B0BFBF; text-decoration:none;">特定商取引法に基づく表記</a>
+                        <a href="{{ route('legal.privacy') }}" style="font-size:0.75rem; color:#B0BFBF; text-decoration:none;">プライバシーポリシー</a>
                     </div>
                 </div>
                 <div>

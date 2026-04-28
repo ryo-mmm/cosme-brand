@@ -2,11 +2,14 @@
 
 namespace App\Http\Controllers;
 
+use App\Mail\SubscriptionCancelledMail;
+use App\Mail\SubscriptionSkippedMail;
 use App\Models\SubscriptionSkip;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Mail;
 
 class MyPageController extends Controller
 {
@@ -27,7 +30,16 @@ class MyPageController extends Controller
             $canSkip = $nextBillingDate->diffInDays(now()) > 3;
         }
 
-        return view('mypage', compact('user', 'subscription', 'diagnoses', 'nextBillingDate', 'canSkip'));
+        $charges = collect();
+        if ($user->stripe_id) {
+            try {
+                $charges = $user->charges(10);
+            } catch (\Exception $e) {
+                Log::warning('Failed to fetch charges: ' . $e->getMessage());
+            }
+        }
+
+        return view('mypage', compact('user', 'subscription', 'diagnoses', 'nextBillingDate', 'canSkip', 'charges'));
     }
 
     public function skipSubscription(Request $request)
@@ -66,6 +78,8 @@ class MyPageController extends Controller
             'new_next_billing_date'      => $newDate,
         ]);
 
+        Mail::to($user)->send(new SubscriptionSkippedMail($user, $newDate));
+
         return back()->with('success', '次回配送を1ヶ月スキップしました。新しい配送日: ' . $newDate->format('Y年m月d日'));
     }
 
@@ -86,6 +100,8 @@ class MyPageController extends Controller
             Log::error('Subscription cancel error: ' . $e->getMessage());
             return back()->with('error', '解約処理中にエラーが発生しました。');
         }
+
+        Mail::to($user)->send(new SubscriptionCancelledMail($user));
 
         return redirect()->route('mypage')
             ->with('success', '定期便の解約を受け付けました。現在の請求期間終了まではご利用いただけます。');
