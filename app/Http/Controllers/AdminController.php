@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Product;
 use App\Models\User;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 
@@ -63,24 +64,48 @@ class AdminController extends Controller
         return view('admin.users', compact('users'));
     }
 
-    public function orders()
+    public function orders(Request $request)
     {
-        $users = User::whereNotNull('stripe_id')->latest()->take(50)->get();
+        $search   = trim($request->input('q', ''));
+        $dateFrom = null;
+        $dateTo   = null;
+
+        try {
+            if ($request->filled('date_from')) {
+                $dateFrom = Carbon::parse($request->input('date_from'))->startOfDay();
+            }
+            if ($request->filled('date_to')) {
+                $dateTo = Carbon::parse($request->input('date_to'))->endOfDay();
+            }
+        } catch (\Exception) {
+            // 不正な日付は無視
+        }
+
+        $query = User::whereNotNull('stripe_id')->latest();
+        if ($search !== '') {
+            $query->where(function ($q) use ($search) {
+                $q->where('email', 'like', "%{$search}%")
+                  ->orWhere('name', 'like', "%{$search}%");
+            });
+        }
+        $users = $query->take(100)->get();
 
         $charges = collect();
         foreach ($users as $user) {
             try {
-                $userCharges = $user->charges(5);
+                $userCharges = $user->charges(10);
                 foreach ($userCharges as $charge) {
-                    if ($charge->paid) {
-                        $charges->push([
-                            'user'        => $user,
-                            'charge'      => $charge,
-                            'amount'      => $charge->amount,
-                            'description' => $charge->description ?? '定期便',
-                            'created_at'  => \Carbon\Carbon::createFromTimestamp($charge->created),
-                        ]);
-                    }
+                    if (!$charge->paid) continue;
+                    $createdAt = Carbon::createFromTimestamp($charge->created);
+                    if ($dateFrom && $createdAt->lt($dateFrom)) continue;
+                    if ($dateTo   && $createdAt->gt($dateTo))   continue;
+                    $charges->push([
+                        'user'        => $user,
+                        'charge'      => $charge,
+                        'amount'      => $charge->amount,
+                        'description' => $charge->description ?? '定期便',
+                        'created_at'  => $createdAt,
+                    ]);
                 }
             } catch (\Exception $e) {
                 Log::warning('Admin orders fetch error for user ' . $user->id . ': ' . $e->getMessage());
@@ -89,6 +114,6 @@ class AdminController extends Controller
 
         $charges = $charges->sortByDesc(fn($c) => $c['charge']->created)->values();
 
-        return view('admin.orders', compact('charges'));
+        return view('admin.orders', compact('charges', 'search', 'dateFrom', 'dateTo'));
     }
 }

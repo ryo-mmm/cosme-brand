@@ -3,7 +3,6 @@
 namespace App\Mail;
 
 use App\Models\User;
-use Carbon\Carbon;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Mail\Mailable;
@@ -11,22 +10,23 @@ use Illuminate\Mail\Mailables\Content;
 use Illuminate\Mail\Mailables\Envelope;
 use Illuminate\Queue\SerializesModels;
 
-class SubscriptionSkippedMail extends Mailable implements ShouldQueue
+class PaymentFailedMail extends Mailable implements ShouldQueue
 {
     use Queueable, SerializesModels;
 
     public function __construct(
         public User $user,
-        public Carbon $newDate,
+        public int $amountDue,
+        public int $attemptCount,
     ) {}
 
     public function envelope(): Envelope
     {
-        return new Envelope(subject: '【LUMIÈRE BOTANIQUE】配送スキップを受け付けました');
+        return new Envelope(subject: '【LUMIÈRE BOTANIQUE】お支払いに失敗しました');
     }
 
     public function content(): Content
     {
-        return new Content(markdown: 'mail.subscription-skipped');
+        return new Content(markdown: 'mail.payment-failed');
     }
 }

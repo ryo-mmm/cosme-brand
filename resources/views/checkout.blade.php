@@ -62,18 +62,19 @@
                         : $products->sum('subscription_price');
                 @endphp
                 <div style="background:#F5F5F0; border-radius:4px; padding:1.25rem; margin-top:1rem;">
+                    @php $shippingFee = config('subscription.shipping_fee'); @endphp
                     <div style="display:flex; justify-content:space-between; margin-bottom:0.5rem;">
                         <span style="font-size:0.8rem; color:#5A6B6C;">小計</span>
                         <span style="font-size:0.8rem; color:#4A5859;">¥{{ number_format($subtotal) }}</span>
                     </div>
                     <div style="display:flex; justify-content:space-between; margin-bottom:0.75rem;">
                         <span style="font-size:0.8rem; color:#5A6B6C;">送料</span>
-                        <span style="font-size:0.8rem; color:#4A5859;">{{ $type === 'subscription' ? '無料' : '¥550' }}</span>
+                        <span style="font-size:0.8rem; color:#4A5859;">{{ $type === 'subscription' ? '無料' : '¥' . number_format($shippingFee) }}</span>
                     </div>
                     <div style="display:flex; justify-content:space-between; padding-top:0.75rem; border-top:1px solid #E8E4DC;">
                         <span style="font-size:0.9rem; color:#2E3A3B; font-weight:500;">合計{{ $type === 'subscription' ? '（月額）' : '' }}</span>
                         <span style="font-size:1rem; color:#4A5859; font-weight:500;">
-                            ¥{{ number_format($type === 'subscription' ? $subtotal : $subtotal + 550) }}
+                            ¥{{ number_format($type === 'subscription' ? $subtotal : $subtotal + $shippingFee) }}
                             {{ $type === 'subscription' ? '/月' : '' }}
                         </span>
                     </div>
@@ -174,7 +175,7 @@
 
                     @php
                         $btnTotal = $type === 'single'
-                            ? '¥' . number_format($products->sum('price') + 550)
+                            ? '¥' . number_format($products->sum('price') + config('subscription.shipping_fee'))
                             : '¥' . number_format($products->sum('subscription_price')) . '/月';
                     @endphp
                     <button type="submit" id="submit-btn"
@@ -204,13 +205,25 @@
                     let lookupTimer;
                     postalInput.addEventListener('input', () => {
                         const raw = postalInput.value.replace(/[^\d]/g, '');
-                        if (raw.length !== 7) { statusEl.textContent = ''; return; }
+                        if (raw.length !== 7) { statusEl.textContent = ''; statusEl.style.color = '#8A9899'; return; }
 
                         clearTimeout(lookupTimer);
                         lookupTimer = setTimeout(async () => {
                             statusEl.textContent = '検索中...';
+                            statusEl.style.color = '#8A9899';
+
+                            const controller = new AbortController();
+                            const timeoutId  = setTimeout(() => controller.abort(), 5000);
+
                             try {
-                                const res  = await fetch(`https://zipcloud.ibsnet.co.jp/api/search?zipcode=${raw}`);
+                                const res  = await fetch(
+                                    `https://zipcloud.ibsnet.co.jp/api/search?zipcode=${raw}`,
+                                    { signal: controller.signal }
+                                );
+                                clearTimeout(timeoutId);
+
+                                if (!res.ok) throw new Error('API error');
+
                                 const data = await res.json();
                                 if (data.results && data.results.length > 0) {
                                     const r = data.results[0];
@@ -219,11 +232,16 @@
                                     statusEl.textContent = '✓ 住所を入力しました';
                                     statusEl.style.color = '#4A5859';
                                 } else {
-                                    statusEl.textContent = '該当する住所が見つかりません';
+                                    statusEl.textContent = '該当する住所が見つかりません。手動でご入力ください';
                                     statusEl.style.color = '#c0392b';
                                 }
-                            } catch {
-                                statusEl.textContent = '';
+                            } catch (e) {
+                                clearTimeout(timeoutId);
+                                const isTimeout = e.name === 'AbortError';
+                                statusEl.textContent = isTimeout
+                                    ? '検索がタイムアウトしました。手動でご入力ください'
+                                    : '住所の自動取得に失敗しました。手動でご入力ください';
+                                statusEl.style.color = '#c0392b';
                             }
                         }, 400);
                     });

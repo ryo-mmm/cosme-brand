@@ -24,6 +24,21 @@ return [
 
     'price_id' => env('STRIPE_PRICE_ID'),
 
+    'plans' => [
+        'monthly' => [
+            'price_id'    => env('STRIPE_PRICE_ID'),
+            'name'        => '月1回コース',
+            'description' => '毎月お届け。最もお得なコース。',
+            'price'       => env('SUBSCRIPTION_PRICE_MONTHLY', 5800),
+        ],
+        'bimonthly' => [
+            'price_id'    => env('STRIPE_PRICE_ID_BIMONTHLY'),
+            'name'        => '2ヶ月に1回コース',
+            'description' => '2ヶ月に1度のゆったりペース。',
+            'price'       => env('SUBSCRIPTION_PRICE_BIMONTHLY', 5800),
+        ],
+    ],
+
     /*
     |--------------------------------------------------------------------------
     | Cashier Path

@@ -76,7 +76,8 @@ class ProfileTest extends TestCase
             ->assertRedirect('/');
 
         $this->assertGuest();
-        $this->assertNull($user->fresh());
+        // SoftDeletes: レコードは残るが deleted_at が設定される
+        $this->assertNotNull($user->fresh()->deleted_at);
     }
 
     public function test_correct_password_must_be_provided_to_delete_account(): void

@@ -30,8 +30,13 @@
 
                 @if($subscription && $subscription->active())
                     <div style="display:flex; align-items:center; gap:0.75rem; margin-bottom:1.5rem;">
-                        <div style="width:10px; height:10px; background:#4A5859; border-radius:50%;"></div>
-                        <span style="font-size:0.85rem; color:#4A5859; font-weight:500;">定期便 配送中</span>
+                        @if($isPaused)
+                            <div style="width:10px; height:10px; background:#B0BFBF; border-radius:50%;"></div>
+                            <span style="font-size:0.85rem; color:#8A9899; font-weight:500;">定期便 一時停止中</span>
+                        @else
+                            <div style="width:10px; height:10px; background:#4A5859; border-radius:50%;"></div>
+                            <span style="font-size:0.85rem; color:#4A5859; font-weight:500;">定期便 配送中</span>
+                        @endif
                     </div>
 
                     @if($nextBillingDate)
@@ -59,10 +64,99 @@
                         @else
                             <p style="font-size:0.8rem; color:#B0BFBF; display:flex; align-items:center; gap:0.5rem;">
                                 <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"/></svg>
-                                配送予定日が近いためスキップできません（3日前まで受付）
+                                配送予定日が近いためスキップできません（{{ config('subscription.skip_days_threshold') }}日前まで受付）
                             </p>
                         @endif
                     </div>
+
+                    {{-- Billing Date Change --}}
+                    @if(!$isPaused)
+                    <div style="border:1px solid #E8E4DC; border-radius:4px; padding:1.25rem; margin-bottom:1rem;">
+                        <h3 style="font-size:0.85rem; font-weight:500; color:#2E3A3B; margin-bottom:0.5rem;">請求日を変更する</h3>
+                        <p style="font-size:0.75rem; color:#8A9899; margin-bottom:1rem; line-height:1.7;">
+                            毎月の請求・配送日を変更できます。1〜28日で指定してください。
+                        </p>
+                        <form method="POST" action="{{ route('mypage.billing-date') }}"
+                              style="display:flex; gap:0.75rem; align-items:center; flex-wrap:wrap;"
+                              onsubmit="return confirm('請求日を変更しますか？次回請求から適用されます。')">
+                            @csrf
+                            <select name="billing_day"
+                                    style="padding:0.6rem 0.875rem; border:1px solid #D8D4CC; border-radius:2px; font-size:0.82rem; background:#fff; font-family:inherit;">
+                                @for($d = 1; $d <= 28; $d++)
+                                    <option value="{{ $d }}" {{ $billingDay === $d ? 'selected' : '' }}>
+                                        毎月{{ $d }}日
+                                    </option>
+                                @endfor
+                            </select>
+                            <button type="submit"
+                                    style="border:1px solid #4A5859; color:#4A5859; background:transparent; padding:0.6rem 1.25rem; font-size:0.78rem; letter-spacing:0.08em; border-radius:2px; cursor:pointer; font-family:inherit;">
+                                変更する
+                            </button>
+                        </form>
+                    </div>
+                    @endif
+
+                    {{-- Pause / Resume --}}
+                    <div style="border:1px solid #E8E4DC; border-radius:4px; padding:1.25rem; margin-bottom:1rem;">
+                        @if($isPaused)
+                            <h3 style="font-size:0.85rem; font-weight:500; color:#2E3A3B; margin-bottom:0.5rem;">定期便を再開する</h3>
+                            <p style="font-size:0.75rem; color:#8A9899; margin-bottom:1rem; line-height:1.7;">
+                                現在、定期便は一時停止中です。再開すると次回の請求日から配送が再開されます。
+                            </p>
+                            <form method="POST" action="{{ route('mypage.resume') }}">
+                                @csrf
+                                <button type="submit"
+                                        style="background:#4A5859; color:#fff; border:none; padding:0.75rem 1.5rem; font-size:0.8rem; letter-spacing:0.1em; border-radius:2px; cursor:pointer; font-family:inherit;">
+                                    定期便を再開する
+                                </button>
+                            </form>
+                        @else
+                            <h3 style="font-size:0.85rem; font-weight:500; color:#2E3A3B; margin-bottom:0.5rem;">定期便を一時停止する</h3>
+                            <p style="font-size:0.75rem; color:#8A9899; margin-bottom:1rem; line-height:1.7;">
+                                長期の外出や在庫過多のときに配送を一時停止できます。停止中は請求が発生しません。
+                            </p>
+                            <form method="POST" action="{{ route('mypage.pause') }}"
+                                  onsubmit="return confirm('定期便を一時停止しますか？\n停止中は請求が発生しません。')">
+                                @csrf
+                                <button type="submit"
+                                        style="background:transparent; border:1px solid #8A9899; color:#8A9899; padding:0.75rem 1.5rem; font-size:0.8rem; letter-spacing:0.1em; border-radius:2px; cursor:pointer; font-family:inherit;">
+                                    一時停止する
+                                </button>
+                            </form>
+                        @endif
+                    </div>
+
+                    {{-- Plan Change --}}
+                    @php $plans = config('cashier.plans', []); @endphp
+                    @if(count($plans) > 1)
+                    <div style="border:1px solid #E8E4DC; border-radius:4px; padding:1.25rem; margin-bottom:1rem;">
+                        <h3 style="font-size:0.85rem; font-weight:500; color:#2E3A3B; margin-bottom:0.5rem;">コースを変更する</h3>
+                        <form method="POST" action="{{ route('mypage.change-plan') }}">
+                            @csrf
+                            <div style="display:flex; flex-direction:column; gap:0.75rem; margin-bottom:1rem;">
+                                @foreach($plans as $key => $plan)
+                                @php
+                                    $isCurrent = $subscription->stripe_price === $plan['price_id'];
+                                    $labelStyle = 'display:flex; align-items:center; gap:0.75rem; cursor:' . ($isCurrent ? 'default' : 'pointer') . '; padding:0.75rem 1rem; border:1px solid ' . ($isCurrent ? '#4A5859' : '#E8E4DC') . '; border-radius:4px; background:' . ($isCurrent ? '#F5F5F0' : '#fff');
+                                @endphp
+                                <label style="{{ $labelStyle }}">
+                                    <input type="radio" name="plan" value="{{ $key }}" {{ $isCurrent ? 'checked disabled' : '' }} style="accent-color:#4A5859;">
+                                    <div>
+                                        <p style="font-size:0.82rem; font-weight:500; color:#2E3A3B; margin:0;">{{ $plan['name'] }}
+                                            @if($isCurrent)<span style="font-size:0.65rem; color:#4A5859; margin-left:0.5rem; letter-spacing:0.05em;">現在のコース</span>@endif
+                                        </p>
+                                        <p style="font-size:0.72rem; color:#8A9899; margin:0.2rem 0 0;">{{ $plan['description'] }} ¥{{ number_format($plan['price']) }}/回</p>
+                                    </div>
+                                </label>
+                                @endforeach
+                            </div>
+                            <button type="submit" onclick="return confirm('コースを変更しますか？次回請求から適用されます。')"
+                                style="background:#4A5859; color:#fff; border:none; padding:0.65rem 1.5rem; font-size:0.78rem; letter-spacing:0.08em; border-radius:2px; cursor:pointer; font-family:'Noto Sans JP', sans-serif;">
+                                コースを変更する
+                            </button>
+                        </form>
+                    </div>
+                    @endif
 
                     <form method="POST" action="{{ route('mypage.cancel') }}"
                           onsubmit="return confirm('定期便を解約しますか？\n現在の請求期間終了日まではご利用いただけます。')">
@@ -123,13 +217,25 @@
                             {{ \Carbon\Carbon::createFromTimestamp($charge->created)->format('Y年m月d日') }}
                         </p>
                     </div>
-                    <div style="text-align:right;">
+                    <div style="text-align:right; display:flex; flex-direction:column; align-items:flex-end; gap:0.4rem;">
                         <p style="font-size:0.9rem; color:#2E3A3B; font-weight:500;">
                             ¥{{ number_format($charge->amount / 100) }}
                         </p>
-                        <span style="font-size:0.65rem; letter-spacing:0.05em; color:#4A5859; background:#E8F0E8; padding:0.15rem 0.5rem; border-radius:2px;">
-                            決済完了
-                        </span>
+                        @if($charge->refunded)
+                            <span style="font-size:0.65rem; letter-spacing:0.05em; color:#8A9899; background:#F0F0F0; padding:0.15rem 0.5rem; border-radius:2px;">返金済み</span>
+                        @else
+                            <span style="font-size:0.65rem; letter-spacing:0.05em; color:#4A5859; background:#E8F0E8; padding:0.15rem 0.5rem; border-radius:2px;">決済完了</span>
+                            @php $chargeDate = \Carbon\Carbon::createFromTimestamp($charge->created); @endphp
+                            @if($chargeDate->diffInDays(now()) <= config('subscription.refund_window_days'))
+                            <form method="POST" action="{{ route('mypage.refund', $charge->id) }}"
+                                  onsubmit="return confirm('この購入を返金申請しますか？')">
+                                @csrf
+                                <button type="submit" style="font-size:0.65rem; color:#c0392b; background:none; border:none; padding:0; cursor:pointer; font-family:'Noto Sans JP',sans-serif; text-decoration:underline;">
+                                    返金申請
+                                </button>
+                            </form>
+                            @endif
+                        @endif
                     </div>
                 </div>
                 @endif

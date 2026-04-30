@@ -2,10 +2,14 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Product extends Model
 {
+    use HasFactory, SoftDeletes;
+
     protected $fillable = [
         'name', 'slug', 'description', 'ingredients',
         'price', 'subscription_price', 'category',
@@ -19,12 +23,12 @@ class Product extends Model
         'subscription_price' => 'decimal:2',
     ];
 
-    public function scopeActive($query)
+    public function scopeActive(\Illuminate\Database\Eloquent\Builder $query): \Illuminate\Database\Eloquent\Builder
     {
         return $query->where('is_active', true);
     }
 
-    public function scopeForSkinType($query, string $skinType)
+    public function scopeForSkinType(\Illuminate\Database\Eloquent\Builder $query, string $skinType): \Illuminate\Database\Eloquent\Builder
     {
         return $query->whereJsonContains('skin_types', $skinType);
     }

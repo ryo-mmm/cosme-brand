@@ -64,13 +64,29 @@ export const useDiagnosisStore = defineStore('diagnosis', {
                     },
                     body: JSON.stringify({ answers: answersArray }),
                 });
+
                 const data = await res.json();
+
+                if (!res.ok) {
+                    if (res.status === 422) {
+                        const messages = Object.values(data.errors ?? {}).flat();
+                        this.error = messages.length > 0
+                            ? messages[0]
+                            : '入力内容を確認してください。';
+                    } else if (res.status === 429) {
+                        this.error = '送信回数の制限に達しました。しばらくしてから再度お試しください。';
+                    } else {
+                        this.error = 'サーバーエラーが発生しました。しばらくしてから再度お試しください。';
+                    }
+                    return;
+                }
+
                 this.result = data;
                 if (data.diagnosis_id) {
                     window.location.href = `/diagnosis/result/${data.diagnosis_id}`;
                 }
             } catch (e) {
-                this.error = '診断の送信に失敗しました。';
+                this.error = 'ネットワークエラーが発生しました。接続を確認してから再度お試しください。';
             } finally {
                 this.loading = false;
             }
