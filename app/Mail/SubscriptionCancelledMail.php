@@ -22,6 +22,6 @@ class SubscriptionCancelledMail extends Mailable
 
     public function content(): Content
     {
-        return new Content(view: 'mail.subscription-cancelled');
+        return new Content(markdown: 'mail.subscription-cancelled');
     }
 }

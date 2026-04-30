@@ -13,6 +13,7 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->validateCsrfTokens(except: [
             'stripe/webhook',
+            'api/*',
         ]);
         $middleware->alias([
             'admin' => \App\Http\Middleware\EnsureAdmin::class,

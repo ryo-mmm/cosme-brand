@@ -24,10 +24,11 @@ class MyPageController extends Controller
         $canSkip = false;
 
         if ($subscription && $subscription->active()) {
-            $nextBillingDate = Carbon::createFromTimestamp(
-                $subscription->asStripeSubscription()->current_period_end
-            );
-            $canSkip = $nextBillingDate->diffInDays(now()) > 3;
+            $periodEnd = $subscription->asStripeSubscription()->current_period_end;
+            if ($periodEnd !== null) {
+                $nextBillingDate = Carbon::createFromTimestamp($periodEnd);
+                $canSkip = $nextBillingDate->diffInDays(now()) > 3;
+            }
         }
 
         $charges = collect();

@@ -22,6 +22,6 @@ class SubscriptionStartedMail extends Mailable
 
     public function content(): Content
     {
-        return new Content(view: 'mail.subscription-started');
+        return new Content(markdown: 'mail.subscription-started');
     }
 }
