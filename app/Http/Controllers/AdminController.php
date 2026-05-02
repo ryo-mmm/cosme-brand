@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Order;
 use App\Models\Product;
 use App\Models\User;
 use Carbon\Carbon;
@@ -81,39 +82,25 @@ class AdminController extends Controller
             // 不正な日付は無視
         }
 
-        $query = User::whereNotNull('stripe_id')->latest();
+        $query = Order::with('user')->latest();
+
         if ($search !== '') {
-            $query->where(function ($q) use ($search) {
+            $query->whereHas('user', function ($q) use ($search) {
                 $q->where('email', 'like', "%{$search}%")
                   ->orWhere('name', 'like', "%{$search}%");
             });
         }
-        $users = $query->take(100)->get();
 
-        $charges = collect();
-        foreach ($users as $user) {
-            try {
-                $userCharges = $user->charges(10);
-                foreach ($userCharges as $charge) {
-                    if (!$charge->paid) continue;
-                    $createdAt = Carbon::createFromTimestamp($charge->created);
-                    if ($dateFrom && $createdAt->lt($dateFrom)) continue;
-                    if ($dateTo   && $createdAt->gt($dateTo))   continue;
-                    $charges->push([
-                        'user'        => $user,
-                        'charge'      => $charge,
-                        'amount'      => $charge->amount,
-                        'description' => $charge->description ?? '定期便',
-                        'created_at'  => $createdAt,
-                    ]);
-                }
-            } catch (\Exception $e) {
-                Log::warning('Admin orders fetch error for user ' . $user->id . ': ' . $e->getMessage());
-            }
+        if ($dateFrom) {
+            $query->where('created_at', '>=', $dateFrom);
         }
 
-        $charges = $charges->sortByDesc(fn($c) => $c['charge']->created)->values();
+        if ($dateTo) {
+            $query->where('created_at', '<=', $dateTo);
+        }
 
-        return view('admin.orders', compact('charges', 'search', 'dateFrom', 'dateTo'));
+        $orders = $query->paginate(50)->withQueryString();
+
+        return view('admin.orders', compact('orders', 'search', 'dateFrom', 'dateTo'));
     }
 }

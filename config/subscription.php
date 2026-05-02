@@ -12,4 +12,7 @@ return [
 
     // 単品購入の送料（円）
     'shipping_fee'         => (int) env('SUBSCRIPTION_SHIPPING_FEE', 550),
+
+    // 管理者通知先メールアドレス（空の場合は通知しない）
+    'admin_email'          => env('ADMIN_EMAIL'),
 ];

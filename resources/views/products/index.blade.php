@@ -64,8 +64,8 @@
                             <span style="font-size:0.75rem; color:#B0BFBF; text-decoration:line-through;">通常¥{{ number_format($product->price) }}</span>
                         </div>
                         <div style="display:flex; gap:0.5rem; margin-top:0.75rem; flex-wrap:wrap;">
-                            @foreach($product->skin_types as $type)
-                            <span style="font-size:0.65rem; border:1px solid #D8D4CC; color:#8A9899; padding:0.15rem 0.5rem; border-radius:100px;">{{ match($type) { 'dry'=>'乾燥肌', 'oily'=>'オイリー肌', 'combination'=>'混合肌', 'sensitive'=>'敏感肌', default=>$type } }}</span>
+                            @foreach($product->skinTypes as $type)
+                            <span style="font-size:0.65rem; border:1px solid #D8D4CC; color:#8A9899; padding:0.15rem 0.5rem; border-radius:100px;">{{ $type->label }}</span>
                             @endforeach
                         </div>
                     </div>

@@ -3,12 +3,15 @@
 namespace Database\Seeders;
 
 use App\Models\Product;
+use App\Models\SkinType;
 use Illuminate\Database\Seeder;
 
 class ProductSeeder extends Seeder
 {
     public function run(): void
     {
+        $skinTypeMap = SkinType::pluck('id', 'slug');
+
         $products = [
             // 乾燥肌向け
             [
@@ -128,7 +131,18 @@ class ProductSeeder extends Seeder
         ];
 
         foreach ($products as $data) {
-            Product::updateOrCreate(['slug' => $data['slug']], $data);
+            $skinTypeSlugs = $data['skin_types'];
+            unset($data['skin_types']);
+
+            $product = Product::updateOrCreate(['slug' => $data['slug']], $data);
+
+            $skinTypeIds = collect($skinTypeSlugs)
+                ->map(fn($slug) => $skinTypeMap[$slug] ?? null)
+                ->filter()
+                ->values()
+                ->all();
+
+            $product->skinTypes()->sync($skinTypeIds);
         }
     }
 }

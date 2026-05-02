@@ -13,15 +13,19 @@ class Product extends Model
     protected $fillable = [
         'name', 'slug', 'description', 'ingredients',
         'price', 'subscription_price', 'category',
-        'skin_types', 'image', 'volume_ml', 'is_active', 'stock',
+        'image', 'volume_ml', 'is_active', 'stock',
     ];
 
     protected $casts = [
-        'skin_types' => 'array',
         'is_active' => 'boolean',
         'price' => 'decimal:2',
         'subscription_price' => 'decimal:2',
     ];
+
+    public function skinTypes()
+    {
+        return $this->belongsToMany(SkinType::class);
+    }
 
     public function scopeActive(\Illuminate\Database\Eloquent\Builder $query): \Illuminate\Database\Eloquent\Builder
     {
@@ -30,7 +34,7 @@ class Product extends Model
 
     public function scopeForSkinType(\Illuminate\Database\Eloquent\Builder $query, string $skinType): \Illuminate\Database\Eloquent\Builder
     {
-        return $query->whereJsonContains('skin_types', $skinType);
+        return $query->whereHas('skinTypes', fn($q) => $q->where('slug', $skinType));
     }
 
     public function getDiscountPercentAttribute(): int

@@ -9,7 +9,7 @@ class ProductController extends Controller
 {
     public function index(Request $request)
     {
-        $query = Product::active();
+        $query = Product::with('skinTypes')->active();
 
         if ($request->filled('skin_type')) {
             $query->forSkinType($request->skin_type);
@@ -24,10 +24,12 @@ class ProductController extends Controller
 
     public function show(string $slug)
     {
-        $product = Product::where('slug', $slug)->active()->firstOrFail();
-        $related = Product::active()
+        $product = Product::with('skinTypes')->where('slug', $slug)->active()->firstOrFail();
+
+        $firstSkinTypeSlug = $product->skinTypes->first()?->slug ?? 'dry';
+        $related = Product::with('skinTypes')->active()
             ->where('id', '!=', $product->id)
-            ->whereJsonContains('skin_types', $product->skin_types[0] ?? 'dry')
+            ->forSkinType($firstSkinTypeSlug)
             ->take(3)
             ->get();
 

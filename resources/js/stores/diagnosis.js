@@ -35,8 +35,8 @@ export const useDiagnosisStore = defineStore('diagnosis', {
             }
         },
 
-        selectAnswer(questionId, score, label) {
-            this.answers[questionId] = { score, label };
+        selectAnswer(questionId, optionIndex, label) {
+            this.answers[questionId] = { optionIndex, label };
         },
 
         nextStep() {
@@ -55,14 +55,21 @@ export const useDiagnosisStore = defineStore('diagnosis', {
             this.loading = true;
             this.error = null;
             try {
-                const answersArray = this.questions.map(q => this.answers[q.id]?.score ?? 0);
+                // スコアはサーバーが DB から解決するため、選択インデックスのみ送信
+                const answersMap = {};
+                this.questions.forEach(q => {
+                    const answer = this.answers[q.id];
+                    if (answer !== undefined) {
+                        answersMap[q.id] = answer.optionIndex;
+                    }
+                });
                 const res = await fetch('/api/diagnosis/submit', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
                         'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
                     },
-                    body: JSON.stringify({ answers: answersArray }),
+                    body: JSON.stringify({ answers: answersMap }),
                 });
 
                 const data = await res.json();

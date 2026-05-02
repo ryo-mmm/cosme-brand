@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use Illuminate\Support\Facades\Log;
 use Stripe\Exception\ApiErrorException;
 use Stripe\Exception\CardException;
 
@@ -55,5 +56,60 @@ class StripeErrorService
     public static function fromCode(string $code): string
     {
         return self::$messages[$code] ?? self::$defaultMessage;
+    }
+
+    // ─── 構造化ログ ───────────────────────────────────────────────────────────
+
+    /**
+     * Stripe 例外を構造化ログに記録する。
+     *
+     * ログレベルの使い分け:
+     *   warning — CardException（ユーザー起因、管理者対応不要）
+     *   error   — ApiErrorException（Stripe API / 設定起因）
+     *
+     * 記録しない情報: カード番号・CVV・有効期限・メールアドレス等の個人情報。
+     *
+     * @param ApiErrorException $e
+     * @param array             $context  user_id / action 等の追加フィールド
+     */
+    public static function log(ApiErrorException $e, array $context = []): void
+    {
+        $logData = array_merge(self::safeStripeFields($e), $context);
+
+        if ($e instanceof CardException) {
+            // カード拒否はユーザー操作起因。管理者エスカレーション不要。
+            Log::warning('stripe.card_error', $logData);
+        } elseif ($e->getHttpStatus() >= 500) {
+            // Stripe サーバー障害 → エラー通知対象
+            Log::error('stripe.server_error', $logData);
+        } else {
+            // 400 系: 設定・パラメータ起因
+            Log::error('stripe.api_error', $logData);
+        }
+    }
+
+    /**
+     * 例外から安全なフィールドのみ抽出（機密情報を除外）。
+     *
+     * @return array<string, mixed>
+     */
+    private static function safeStripeFields(ApiErrorException $e): array
+    {
+        $fields = [
+            'stripe_error_code' => $e->getStripeCode(),
+            'stripe_request_id' => $e->getRequestId(),
+            'http_status'       => $e->getHttpStatus(),
+            'error_type'        => $e->getError()?->type,
+        ];
+
+        if ($e instanceof CardException) {
+            $fields['decline_code'] = $e->getDeclineCode();
+            // CardException のメッセージはカード関連の技術情報を含む可能性があるため省略
+        } else {
+            // API エラーは診断に有用なためメッセージを含める（Stripe のメッセージに PII は含まれない）
+            $fields['stripe_message'] = mb_substr((string) $e->getMessage(), 0, 200);
+        }
+
+        return $fields;
     }
 }

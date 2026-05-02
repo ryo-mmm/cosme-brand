@@ -32,8 +32,8 @@
 
                 {{-- Skin types --}}
                 <div style="display:flex; gap:0.5rem; margin-bottom:2rem; flex-wrap:wrap;">
-                    @foreach($product->skin_types as $type)
-                    <span style="font-size:0.7rem; border:1px solid #4A5859; color:#4A5859; padding:0.3rem 0.75rem; border-radius:100px;">{{ match($type) { 'dry'=>'乾燥肌', 'oily'=>'オイリー肌', 'combination'=>'混合肌', 'sensitive'=>'敏感肌', default=>$type } }}</span>
+                    @foreach($product->skinTypes as $type)
+                    <span style="font-size:0.7rem; border:1px solid #4A5859; color:#4A5859; padding:0.3rem 0.75rem; border-radius:100px;">{{ $type->label }}</span>
                     @endforeach
                 </div>
 

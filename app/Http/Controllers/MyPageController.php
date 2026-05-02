@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Mail\SubscriptionCancelledMail;
 use App\Mail\SubscriptionSkippedMail;
 use App\Models\SubscriptionSkip;
+use App\Services\AlertService;
 use App\Services\StripeErrorService;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
@@ -83,10 +84,14 @@ class MyPageController extends Controller
                 'proration_behavior' => 'none',
             ]);
         } catch (\Stripe\Exception\ApiErrorException $e) {
-            Log::error('Subscription skip error: ' . $e->getMessage());
+            StripeErrorService::log($e, ['user_id' => $user->id, 'action' => 'subscription_skip']);
             return back()->with('error', StripeErrorService::fromCode($e->getStripeCode() ?? ''));
         } catch (\Exception $e) {
-            Log::error('Subscription skip error: ' . $e->getMessage());
+            AlertService::critical('subscription.skip_unexpected_error', [
+                'user_id' => $user->id,
+                'exception_class' => get_class($e),
+                'exception_message' => mb_substr($e->getMessage(), 0, 200),
+            ]);
             return back()->with('error', 'スキップ処理中にエラーが発生しました。');
         }
 
@@ -129,10 +134,19 @@ class MyPageController extends Controller
         try {
             $subscription->swap($plan['price_id']);
         } catch (\Stripe\Exception\ApiErrorException $e) {
-            Log::error('Plan change error: ' . $e->getMessage());
+            StripeErrorService::log($e, [
+                'user_id' => $user->id,
+                'action'  => 'plan_change',
+                'new_plan' => $request->plan,
+            ]);
             return back()->with('error', StripeErrorService::toJapanese($e));
         } catch (\Exception $e) {
-            Log::error('Plan change error: ' . $e->getMessage());
+            AlertService::critical('subscription.plan_change_unexpected_error', [
+                'user_id' => $user->id,
+                'new_plan' => $request->plan,
+                'exception_class' => get_class($e),
+                'exception_message' => mb_substr($e->getMessage(), 0, 200),
+            ]);
             return back()->with('error', 'プランの変更中にエラーが発生しました。');
         }
 
@@ -165,10 +179,19 @@ class MyPageController extends Controller
                 'proration_behavior' => 'none',
             ]);
         } catch (\Stripe\Exception\ApiErrorException $e) {
-            Log::error('Billing date change error: ' . $e->getMessage());
+            StripeErrorService::log($e, [
+                'user_id'     => $user->id,
+                'action'      => 'billing_date_change',
+                'billing_day' => $day,
+            ]);
             return back()->with('error', StripeErrorService::fromCode($e->getStripeCode() ?? ''));
         } catch (\Exception $e) {
-            Log::error('Billing date change error: ' . $e->getMessage());
+            AlertService::critical('subscription.billing_date_change_unexpected_error', [
+                'user_id'     => $user->id,
+                'billing_day' => $day,
+                'exception_class' => get_class($e),
+                'exception_message' => mb_substr($e->getMessage(), 0, 200),
+            ]);
             return back()->with('error', '請求日の変更中にエラーが発生しました。');
         }
 
@@ -195,10 +218,14 @@ class MyPageController extends Controller
                 'pause_collection' => ['behavior' => 'void'],
             ]);
         } catch (\Stripe\Exception\ApiErrorException $e) {
-            Log::error('Subscription pause error: ' . $e->getMessage());
+            StripeErrorService::log($e, ['user_id' => $user->id, 'action' => 'subscription_pause']);
             return back()->with('error', StripeErrorService::fromCode($e->getStripeCode() ?? ''));
         } catch (\Exception $e) {
-            Log::error('Subscription pause error: ' . $e->getMessage());
+            AlertService::critical('subscription.pause_unexpected_error', [
+                'user_id' => $user->id,
+                'exception_class' => get_class($e),
+                'exception_message' => mb_substr($e->getMessage(), 0, 200),
+            ]);
             return back()->with('error', '一時停止処理中にエラーが発生しました。');
         }
 
@@ -220,10 +247,14 @@ class MyPageController extends Controller
                 'pause_collection' => '',
             ]);
         } catch (\Stripe\Exception\ApiErrorException $e) {
-            Log::error('Subscription resume error: ' . $e->getMessage());
+            StripeErrorService::log($e, ['user_id' => $user->id, 'action' => 'subscription_resume']);
             return back()->with('error', StripeErrorService::fromCode($e->getStripeCode() ?? ''));
         } catch (\Exception $e) {
-            Log::error('Subscription resume error: ' . $e->getMessage());
+            AlertService::critical('subscription.resume_unexpected_error', [
+                'user_id' => $user->id,
+                'exception_class' => get_class($e),
+                'exception_message' => mb_substr($e->getMessage(), 0, 200),
+            ]);
             return back()->with('error', '再開処理中にエラーが発生しました。');
         }
 
@@ -256,13 +287,18 @@ class MyPageController extends Controller
             \Stripe\Refund::create(['charge' => $chargeId]);
 
         } catch (\Stripe\Exception\InvalidRequestException $e) {
-            Log::error('Refund failed', ['charge_id' => $chargeId, 'user_id' => $user->id, 'message' => $e->getMessage()]);
+            StripeErrorService::log($e, ['user_id' => $user->id, 'action' => 'refund', 'charge_id' => $chargeId]);
             return back()->with('error', StripeErrorService::toJapanese($e));
         } catch (\Stripe\Exception\ApiErrorException $e) {
-            Log::error('Refund API error', ['charge_id' => $chargeId, 'user_id' => $user->id, 'message' => $e->getMessage()]);
+            StripeErrorService::log($e, ['user_id' => $user->id, 'action' => 'refund', 'charge_id' => $chargeId]);
             return back()->with('error', StripeErrorService::toJapanese($e));
         } catch (\Exception $e) {
-            Log::error('Refund error', ['charge_id' => $chargeId, 'user_id' => $user->id, 'message' => $e->getMessage()]);
+            AlertService::critical('subscription.refund_unexpected_error', [
+                'user_id' => $user->id,
+                'charge_id' => $chargeId,
+                'exception_class' => get_class($e),
+                'exception_message' => mb_substr($e->getMessage(), 0, 200),
+            ]);
             return back()->with('error', '返金処理中にエラーが発生しました。');
         }
 
@@ -284,10 +320,14 @@ class MyPageController extends Controller
         try {
             $subscription->cancel();
         } catch (\Stripe\Exception\ApiErrorException $e) {
-            Log::error('Subscription cancel error: ' . $e->getMessage());
+            StripeErrorService::log($e, ['user_id' => $user->id, 'action' => 'subscription_cancel']);
             return back()->with('error', StripeErrorService::fromCode($e->getStripeCode() ?? ''));
         } catch (\Exception $e) {
-            Log::error('Subscription cancel error: ' . $e->getMessage());
+            AlertService::critical('subscription.cancel_unexpected_error', [
+                'user_id' => $user->id,
+                'exception_class' => get_class($e),
+                'exception_message' => mb_substr($e->getMessage(), 0, 200),
+            ]);
             return back()->with('error', '解約処理中にエラーが発生しました。');
         }
 

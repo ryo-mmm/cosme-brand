@@ -44,13 +44,13 @@
         {{-- Result count --}}
         @if($search || $dateFrom || $dateTo)
         <p style="font-size:0.78rem; color:#8A9899; margin-bottom:1rem;">
-            {{ $charges->count() }} 件の注文が見つかりました
+            {{ $orders->total() }} 件の注文が見つかりました
             @if($search)（検索: {{ $search }}）@endif
             @if($dateFrom)（{{ $dateFrom->format('Y/m/d') }}〜{{ $dateTo?->format('Y/m/d') ?? '現在' }}）@endif
         </p>
         @endif
 
-        @if($charges->isEmpty())
+        @if($orders->isEmpty())
         <p style="font-size:0.85rem; color:#8A9899; text-align:center; padding:3rem;">注文データがありません。</p>
         @else
         <div style="background:#fff; border:1px solid #E8E4DC; border-radius:4px; overflow:hidden;">
@@ -60,26 +60,36 @@
                         <th style="text-align:left; padding:0.875rem 1rem; color:#8A9899; font-weight:400;">日時</th>
                         <th style="text-align:left; padding:0.875rem 1rem; color:#8A9899; font-weight:400;">ユーザー</th>
                         <th style="text-align:left; padding:0.875rem 1rem; color:#8A9899; font-weight:400;">内容</th>
+                        <th style="text-align:left; padding:0.875rem 1rem; color:#8A9899; font-weight:400;">決済ID</th>
                         <th style="text-align:right; padding:0.875rem 1rem; color:#8A9899; font-weight:400;">金額</th>
                         <th style="text-align:center; padding:0.875rem 1rem; color:#8A9899; font-weight:400;">状態</th>
                     </tr>
                 </thead>
                 <tbody>
-                    @foreach($charges as $item)
+                    @foreach($orders as $order)
                     <tr style="border-bottom:1px solid #F5F5F0;">
                         <td style="padding:0.875rem 1rem; color:#8A9899; white-space:nowrap;">
-                            {{ $item['created_at']->format('Y/m/d H:i') }}
+                            {{ $order->created_at->format('Y/m/d H:i') }}
                         </td>
                         <td style="padding:0.875rem 1rem;">
-                            <p style="color:#2E3A3B;">{{ $item['user']->name }}</p>
-                            <p style="font-size:0.72rem; color:#8A9899;">{{ $item['user']->email }}</p>
+                            @if($order->user)
+                                <p style="color:#2E3A3B;">{{ $order->user->name }}</p>
+                                <p style="font-size:0.72rem; color:#8A9899;">{{ $order->user->email }}</p>
+                            @else
+                                <p style="font-size:0.72rem; color:#B0BFBF;">削除済みユーザー</p>
+                            @endif
                         </td>
-                        <td style="padding:0.875rem 1rem; color:#4A5859;">{{ $item['description'] }}</td>
+                        <td style="padding:0.875rem 1rem; color:#4A5859;">
+                            {{ $order->description ?? '定期便' }}
+                        </td>
+                        <td style="padding:0.875rem 1rem;">
+                            <span style="font-size:0.7rem; color:#B0BFBF; font-family:monospace;">{{ $order->stripe_charge_id }}</span>
+                        </td>
                         <td style="padding:0.875rem 1rem; text-align:right; color:#2E3A3B; font-weight:500;">
-                            ¥{{ number_format($item['amount'] / 100) }}
+                            ¥{{ number_format($order->amount / 100) }}
                         </td>
                         <td style="padding:0.875rem 1rem; text-align:center;">
-                            @if($item['charge']->refunded)
+                            @if($order->isRefunded())
                                 <span style="font-size:0.65rem; letter-spacing:0.05em; color:#8A9899; background:#F0F0F0; padding:0.2rem 0.6rem; border-radius:2px;">返金済み</span>
                             @else
                                 <span style="font-size:0.65rem; letter-spacing:0.05em; color:#4A5859; background:#E8F0E8; padding:0.2rem 0.6rem; border-radius:2px;">決済完了</span>
@@ -90,8 +100,16 @@
                 </tbody>
             </table>
         </div>
+
+        {{-- Pagination --}}
+        @if($orders->hasPages())
+        <div style="margin-top:1rem;">
+            {{ $orders->links() }}
+        </div>
+        @endif
+
         <p style="font-size:0.72rem; color:#B0BFBF; margin-top:0.75rem; text-align:right;">
-            合計 {{ $charges->count() }} 件 / ¥{{ number_format($charges->sum('amount') / 100) }}
+            全 {{ $orders->total() }} 件 / ページ {{ $orders->currentPage() }} / {{ $orders->lastPage() }}
         </p>
         @endif
     </div>

@@ -18,7 +18,6 @@ class ProductFactory extends Factory
             'price'              => $this->faker->numberBetween(3000, 10000),
             'subscription_price' => $this->faker->numberBetween(2500, 9000),
             'category'           => $this->faker->randomElement(['serum', 'lotion', 'cream', 'cleanser']),
-            'skin_types'         => ['dry', 'normal'],
             'image'              => null,
             'volume_ml'          => $this->faker->randomElement([30, 50, 100, 200]),
             'is_active'          => true,

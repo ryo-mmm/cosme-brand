@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\DiagnosisQuestion;
 use App\Models\Product;
 use App\Models\SkinDiagnosis;
+use App\Services\DiagnosisService;
 use Illuminate\Http\Request;
 
 class DiagnosisApiController extends Controller
@@ -21,42 +22,38 @@ class DiagnosisApiController extends Controller
         return response()->json(['questions' => $questions]);
     }
 
-    public function submit(Request $request)
+    public function submit(Request $request, DiagnosisService $service)
     {
-        $request->validate([
-            'answers' => ['required', 'array', 'min:5'],
-        ]);
+        /** @var \Illuminate\Database\Eloquent\Collection<int, DiagnosisQuestion> $questions */
+        $questions = DiagnosisQuestion::active()->get();
 
-        $totalScore = array_sum($request->answers);
-        $skinType = $this->classifySkinType($totalScore, $request->answers);
-        $products = Product::active()->forSkinType($skinType)->get();
-        $productIds = $products->pluck('id')->toArray();
+        // 設問ごとに選択肢インデックスの上限を動的に決定して厳密バリデーション
+        $rules = [
+            'answers' => ['required', 'array', 'size:' . $questions->count()],
+        ];
+        foreach ($questions as $question) {
+            $maxIndex = count($question->options) - 1;
+            $rules["answers.{$question->id}"] = ['required', 'integer', 'min:0', 'max:' . $maxIndex];
+        }
+        $request->validate($rules);
+
+        $result   = $service->analyze($questions, $request->answers);
+        $products = Product::active()->forSkinType($result['skin_type'])->get();
 
         $diagnosis = SkinDiagnosis::create([
-            'user_id' => auth()->id(),
-            'session_id' => session()->getId(),
-            'answers' => $request->answers,
-            'skin_type' => $skinType,
-            'score' => $totalScore,
-            'recommended_product_ids' => $productIds,
+            'user_id'                 => auth()->id(),
+            'session_id'              => session()->getId(),
+            'answers'                 => $request->answers, // [questionId => optionIndex]
+            'skin_type'               => $result['skin_type'],
+            'score'                   => $result['total_score'],
+            'recommended_product_ids' => $products->pluck('id')->toArray(),
         ]);
 
         return response()->json([
-            'diagnosis_id' => $diagnosis->id,
-            'skin_type' => $skinType,
+            'diagnosis_id'    => $diagnosis->id,
+            'skin_type'       => $result['skin_type'],
             'skin_type_label' => $diagnosis->skin_type_label,
-            'products' => $products,
+            'products'        => $products,
         ]);
-    }
-
-    private function classifySkinType(int $score, array $answers): string
-    {
-        // Q3でスコア4（赤み・かぶれ）が選ばれた場合は敏感肌
-        if (isset($answers[2]) && $answers[2] === 4) {
-            return 'sensitive';
-        }
-        if ($score <= 4) return 'dry';
-        if ($score <= 9) return 'combination';
-        return 'oily';
     }
 }

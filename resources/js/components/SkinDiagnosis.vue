@@ -94,9 +94,9 @@
           </h2>
           <div class="options-grid">
             <button
-              v-for="option in store.currentQuestion.options"
+              v-for="(option, optionIndex) in store.currentQuestion.options"
               :key="option.label"
-              @click="selectAndAdvance(store.currentQuestion.id, option.score, option.label)"
+              @click="selectAndAdvance(store.currentQuestion.id, optionIndex, option.label)"
               :class="['option-btn', store.answers[store.currentQuestion.id]?.label === option.label ? 'selected' : '']"
             >
               {{ option.label }}
@@ -149,8 +149,8 @@ onMounted(async () => {
   await store.fetchQuestions();
 });
 
-function selectAndAdvance(questionId, score, label) {
-  store.selectAnswer(questionId, score, label);
+function selectAndAdvance(questionId, optionIndex, label) {
+  store.selectAnswer(questionId, optionIndex, label);
 }
 
 async function handleNext() {
